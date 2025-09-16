@@ -33,6 +33,8 @@ def list_task():
         print("List of your tasks:")
     for i in range(len(l)):
         print("\n", *l[i], sep = "\n")
+    graphics()
+
 
 def add_task():
     os.system('cls')
@@ -93,6 +95,9 @@ def load():
     except ValueError:
         print("Nothing to load.\n")
         return 0
+    if n == 0:
+        print("Nothing to load.\n")
+        return 0
     for i in range(n):
         temp = (file.readline()).split("|")
         temp[-1] = temp[-1][:-1]
@@ -114,7 +119,25 @@ def delete_task():
         print("\nTask not found.")
     else:
         print("Task was successfully deleted.")
-    
+
+def graphics():
+    local = time.localtime()
+    temp = (local[3]*60*60)+(local[4]*60)+(local[5])
+    local = time.mktime(local)-temp
+    print()
+    for task in l:
+        print(f"Task {task[0][:10].ljust(10, ' ')}", end = "")
+        for i in range(7):
+            print("[", end = " ")
+            for j in range(12):
+                if  time.mktime(time.strptime(task[2], "%a %b %d %H:%M:%S %Y")) < (local+((j*60*120)+(i*12*120*60))) and\
+                    time.mktime(time.strptime(task[3], "%a %b %d %H:%M:%S %Y")) > (local+((j*60*120)+(i*12*120*60))):
+                        print("0", end = " ")
+                else:
+                    print("-", end = " ")
+            print("]", end = "")
+        print("")
+
 load()
 
 while True:
