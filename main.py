@@ -3,10 +3,10 @@ import os
 from datetime import datetime
 
 l = []
-obj = ["name", "description", "current", "deadline"]
+obj = ["name", "description", "current", "deadline", "status"]
 
 def menu():
-    print("\nPrint '1' to list all tasks.\nPrint '2' to add task.\nPrint '3' to delete task.\nPrint '4' to save and quit.\n")
+    print("\nPrint '1' to list all tasks.\nPrint '2' to add task.\nPrint '3' to change status of the task.\nPrint '4' to delete task.\nPrint '5' to save and quit.\n")
     n = input()
     match n:
         case "1":
@@ -14,8 +14,10 @@ def menu():
         case "2":   
             add_task()
         case "3":
-            delete_task()
+            status()
         case "4":
+            delete_task()
+        case "5":
             save()
             os._exit(0)
         case _:
@@ -58,7 +60,22 @@ def add_task():
                 temp.append(tempStr)
             case 2:
                 temp.append(time.ctime(time.mktime(time.gmtime())+10800))
+    temp.append("Planned")
     l.append(temp)
+
+def status():
+    os.system('cls')
+    print("Enter name of the task, which status you want to change.\n")
+    name = input()
+    for i in range(len(l)):
+        if name == l[i][0]:
+            print("Enter current status of the task. (Completed/In progress)")
+            status = input()
+            if status == "Completed":
+                l[i][-1] = "Completed"
+                return 0
+            elif status == "In progress":
+                l[i][-1] = "In progress"
 
 def save():
     file = open('data.txt', 'w')
@@ -85,17 +102,19 @@ def load():
 
 def delete_task():
     os.system('cls')
-    print("\nEnter the name of the task you want to delete:\n(Attention, will be deleted first found task with entered name)")
+    print("\nEnter the name of the task you want to delete:\n(Attention, will be deleted first found task with entered name.)")
+    temp = -1
     name = input()
     for i in range(len(l)):
-        if name in l[i]:
-            l.pop(i)
+        if name in l[i][0]:
+            temp = l.pop(i)
             break
     os.system('cls')
-    print("\nTask not found.")
+    if temp == -1:
+        print("\nTask not found.")
+    else:
+        print("Task was successfully deleted.")
     
-
-
 load()
 
 while True:
