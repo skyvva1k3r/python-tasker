@@ -89,7 +89,11 @@ def save():
     file.close()
 
 def load():
-    file = open('data.txt', 'r')
+    try:
+        file = open('data.txt', 'r')
+    except FileNotFoundError:
+        print("No such file.\n")
+        return 0
     try:
         n = int(file.readline())
     except ValueError:
