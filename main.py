@@ -4,6 +4,7 @@ from datetime import datetime
 
 l = []
 obj = ["name", "description", "current", "deadline", "status"]
+week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 def menu():
     print("\nPrint '1' to list all tasks.\nPrint '2' to add task.\nPrint '3' to change status of the task.\nPrint '4' to delete task.\nPrint '5' to save and quit.\n")
@@ -126,16 +127,23 @@ def delete_task():
 
 def graphics():
     local = time.localtime()
+    print(local)
     temp = (local[3]*60*60)+(local[4]*60)+(local[5])
     local = time.mktime(local)-temp
     print()
+    print("\t   ", end = "")
+    for i in range(7):
+        current_day_index = time.gmtime()[6]
+        day_index = (current_day_index + i) % 7
+        print(week[day_index].ljust(19, " "), end = "")
+    print()
     for task in l:
-        print(f"Task {task[0][:10].ljust(10, ' ')}", end = "")
+        print(f"Task {task[0][:5].ljust(5, ' ')}", end = "")
         for i in range(7):
             print("[", end = " ")
-            for j in range(12):
-                if  time.mktime(time.strptime(task[2], "%a %b %d %H:%M:%S %Y")) < (local+((j*60*120)+(i*12*120*60))) and\
-                    time.mktime(time.strptime(task[3], "%a %b %d %H:%M:%S %Y")) > (local+((j*60*120)+(i*12*120*60))):
+            for j in range(8):
+                if  time.mktime(time.strptime(task[2], "%a %b %d %H:%M:%S %Y")) < (local+((j*60*180)+(i*12*180*60))) and\
+                    time.mktime(time.strptime(task[3], "%a %b %d %H:%M:%S %Y")) > (local+((j*60*180)+(i*12*180*60))):
                         print("0", end = " ")
                 else:
                     print("-", end = " ")
