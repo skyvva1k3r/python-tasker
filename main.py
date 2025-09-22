@@ -1,43 +1,25 @@
 import time
 import os
 from datetime import datetime
+import click
 
 l = []
 obj = ["name", "description", "current", "deadline", "status"]
 week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-
-def menu():
-    print("\nPrint '1' to list all tasks.\nPrint '2' to add task.\nPrint '3' to change status of the task.\nPrint '4' to delete task.\nPrint '5' to save and quit.\n")
-    n = input()
-    match n:
-        case "1":
-            list_task()
-        case "2":   
-            add_task()
-        case "3":
-            status()
-        case "4":
-            delete_task()
-        case "5":
-            save()
-            os._exit(0)
-        case _:
-            print("wrong input")
-            return 0
 
 def list_task():
     os.system('cls')
     if len(l) == 0:
         os.system('cls')
         print("You have no tasks for now.")
+        return 0
     else:
         print("List of your tasks:")
     for i in range(len(l)):
         print("\n", *l[i], sep = "\n")
     graphics()
 
-
-def add_task():
+def add_task_interactive():
     os.system('cls')
     temp = []
     tempStr = ""
@@ -65,8 +47,29 @@ def add_task():
                 temp.append(time.ctime(time.mktime(time.gmtime())+10800))
     temp.append("Planned")
     l.append(temp)
+    return temp[0]  # возвращаем имя задачи
 
-def status():
+def add_task_cli(name, description, deadline):
+    temp = []
+    tempStr = ""
+    
+    # Проверка дедлайна
+    try: 
+        tempStr = datetime.strptime(deadline, "%Y-%m-%d %H:%M")
+    except ValueError:
+        print("Wrong time format. Use: YYYY-MM-DD HH:MM")
+        return False
+        
+    tempStr = datetime.strftime(tempStr, "%c")
+    if time.mktime(time.strptime(tempStr, "%a %b %d %H:%M:%S %Y")) <= (time.mktime(time.gmtime())+10800):
+        print("Deadline is in past.")
+        return False
+    
+    temp.extend([name, description, time.ctime(time.mktime(time.gmtime())+10800), tempStr, "Planned"])
+    l.append(temp)
+    return True
+
+def status_interactive():
     os.system('cls')
     print("Enter name of the task, which status you want to change.\n")
     name = input()
@@ -76,9 +79,22 @@ def status():
             status = input()
             if status == "Completed":
                 l[i][-1] = "Completed"
-                return 0
+                return name
             elif status == "In progress":
                 l[i][-1] = "In progress"
+                return name
+    return None
+
+def status_cli(name, new_status):
+    for i in range(len(l)):
+        if name == l[i][0]:
+            if new_status in ["Completed", "In progress", "Planned"]:
+                l[i][-1] = new_status
+                return True
+            else:
+                print("Invalid status. Use: Completed/In progress/Planned")
+                return False
+    return False
 
 def save():
     file = open('data.txt', 'w')
@@ -93,24 +109,21 @@ def load():
     try:
         file = open('data.txt', 'r')
     except FileNotFoundError:
-        print("No such file.\n")
         return 0
     try:
         n = int(file.readline())
     except ValueError:
-        print("Nothing to load.\n")
         return 0
     if n == 0:
-        print("Nothing to load.\n")
         return 0
     for i in range(n):
         temp = (file.readline()).split("|")
         temp[-1] = temp[-1][:-1]
         l.append(temp)
         temp = []
-    print(n, "tasks was loaded successfully.")
+    return n
 
-def delete_task():
+def delete_task_interactive():
     os.system('cls')
     print("\nEnter the name of the task you want to delete:\n(Attention, will be deleted first found task with entered name.)")
     temp = -1
@@ -122,12 +135,20 @@ def delete_task():
     os.system('cls')
     if temp == -1:
         print("\nTask not found.")
+        return None
     else:
         print("Task was successfully deleted.")
+        return temp[0]
+
+def delete_task_cli(name):
+    for i in range(len(l)):
+        if name == l[i][0]:
+            deleted_task = l.pop(i)
+            return True
+    return False
 
 def graphics():
     local = time.localtime()
-    print(local)
     temp = (local[3]*60*60)+(local[4]*60)+(local[5])
     local = time.mktime(local)-temp
     print()
@@ -150,7 +171,86 @@ def graphics():
             print("]", end = "")
         print("")
 
-load()
+# CLI команды с Click
+@click.group()
+def cli():
+    """Task Manager - управление задачами из командной строки"""
+    loaded_count = load()
+    if loaded_count > 0:
+        click.echo(f"Loaded {loaded_count} tasks")
+    pass
 
-while True:
-    menu()
+@cli.command()
+def list():
+    """Показать все задачи"""
+    list_task()
+
+@cli.command()
+@click.option('--name', prompt='Task name', help='Название задачи')
+@click.option('--description', prompt='Description', help='Описание задачи')
+@click.option('--deadline', prompt='Deadline (YYYY-MM-DD HH:MM)', help='Дедлайн задачи')
+def add(name, description, deadline):
+    """Добавить новую задачу"""
+    if add_task_cli(name, description, deadline):
+        click.echo(f"Task '{name}' added successfully!")
+        save()
+    else:
+        click.echo("Failed to add task")
+
+@cli.command()
+@click.option('--name', prompt='Task name', help='Название задачи')
+@click.option('--status', type=click.Choice(['Completed', 'In progress', 'Planned']), 
+              prompt='New status', help='Новый статус задачи')
+def status(name, status):
+    """Изменить статус задачи"""
+    if status_cli(name, status):
+        click.echo(f"Status of task '{name}' changed to '{status}'")
+        save()
+    else:
+        click.echo(f"Task '{name}' not found")
+
+@cli.command()
+@click.option('--name', prompt='Task name', help='Название задачи для удаления')
+def delete(name):
+    """Удалить задачу"""
+    if delete_task_cli(name):
+        click.echo(f"Task '{name}' deleted successfully!")
+        save()
+    else:
+        click.echo(f"Task '{name}' not found")
+
+@cli.command()
+def interactive():
+    """Интерактивный режим (твое оригинальное меню)"""
+    while True:
+        click.echo("\n" + "="*50)
+        click.echo("1. List all tasks")
+        click.echo("2. Add task")
+        click.echo("3. Change status of the task")
+        click.echo("4. Delete task")
+        click.echo("5. Save and quit")
+        click.echo("="*50)
+        
+        choice = click.prompt("Enter your choice", type=click.Choice(['1', '2', '3', '4', '5']))
+        
+        match choice:
+            case "1":
+                list_task()
+            case "2":   
+                add_task_interactive()
+                save()
+            case "3":
+                result = status_interactive()
+                if result:
+                    save()
+            case "4":
+                result = delete_task_interactive()
+                if result:
+                    save()
+            case "5":
+                save()
+                click.echo("Goodbye!")
+                break
+
+if __name__ == "__main__":
+    cli()
